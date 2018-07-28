@@ -61,7 +61,7 @@ class CLI(cmd.Cmd):
     def help_exit(self):
         print("exit")
 
-    def do_quit(self):
+    def do_quit(self, arg):
         return True
 
     def help_quit(self):
