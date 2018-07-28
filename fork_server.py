@@ -164,7 +164,7 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
         res = []
         for sub in self.sub:
             sub.status = SUB_STOP
-            os.kill(sub.pid, signal.SIGINT)
+            os.kill(sub.pid, signal.SIGTERM)
             res.append(sub.name + "already stop")
         return "\n".join(res)
 
@@ -172,7 +172,7 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
         for sub in self.sub:
             if name == sub.name and sub.status == SUB_RUNNING:
                 sub.status = SUB_STOP
-                os.kill(sub.pid, signal.SIGINT)
+                os.kill(sub.pid, signal.SIGTERM)
                 res = sub.name + ": stop ****"
                 return res
         res = "none sub stop or sub name"
@@ -189,7 +189,7 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
         for sub in self.sub:
             if sub.status == SUB_RUNNING:
                 sub.status = SUB_STOP
-                os.kill(sub.pid, signal.SIGINT)
+                os.kill(sub.pid, signal.SIGTERM)
         t = threading.Thread(target=kill_self, args=(pid, ))    # 使用线程退出，以免在杀死自己后无数据返回
         t.start()
         return "exit ok:" + str(pid)
@@ -198,7 +198,7 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
 # 在线程中杀死自己退出
 def kill_self(pid):
     time.sleep(3)
-    os.kill(pid, signal.SIGKILL)
+    os.kill(pid, signal.SIGTERM)
 
 if __name__ == '__main__':
     server = Control(("127.0.0.1", 8003))
