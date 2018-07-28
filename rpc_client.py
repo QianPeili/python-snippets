@@ -2,6 +2,7 @@
 import xmlrpc.client
 import cmd
 import os
+import sys
 
 
 class CLI(cmd.Cmd):
@@ -10,6 +11,13 @@ class CLI(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.prompt = ">>\t"
         self.proxy = xmlrpc.client.ServerProxy("http://127.0.0.1:8003")
+        try:
+            self.proxy.ping()
+        except ConnectionRefusedError:
+            print("fork rpc server is not running.")
+            sys.exit(0)
+        except Exception as e:
+            raise e
 
     def do_status(self, arg):
         print("do_status:", arg)

@@ -11,6 +11,14 @@ else:
 
 class ForkXMLRPCServer(SimpleXMLRPCServer):         # 继承自Python标准库的Server
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        def ping():
+            return "ok"
+
+        self.register_function(ping, "ping")
+
     def check_process(self):
         raise NotImplementedError
 
