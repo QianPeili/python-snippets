@@ -16,27 +16,24 @@ class RunObj(object):                   # 任务运行类
     def run(self):
         while True:                     # 循环执行任务
             pid = os.getpid()
-            print(pid)
-            with open("sub_"+str(pid)+".txt", "a") as f:
-                f.write(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+" sub pid \n")
-                print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+ " " + str(pid) +" sub pid \n")
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+ " " + str(pid) +" sub pid \n")
             time.sleep(5)
 
 
-def make_pipes():
-    """ Create pipes for parent to child stdin/stdout/stderr
-    communications.  Open fd in nonblocking mode so we can read them
-    in the mainloop without blocking """
-    pipes = {}
-    try:
-        pipes['child_stdin'], pipes['stdin'] = os.pipe()                    # 生成管道
-        pipes['stdout'], pipes['child_stdout'] = os.pipe()
-        pipes['stderr'], pipes['child_stderr'] = os.pipe()
-        for fd in (pipes['stdout'], pipes['stderr'], pipes['stdin']):
-            fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | os.O_NDELAY)            # 设置文件描述符状态，使该管道成为非阻塞模式
-        return pipes
-    except OSError:
-        raise
+# def make_pipes():
+#     """ Create pipes for parent to child stdin/stdout/stderr
+#     communications.  Open fd in nonblocking mode so we can read them
+#     in the mainloop without blocking """
+#     pipes = {}
+#     try:
+#         pipes['child_stdin'], pipes['stdin'] = os.pipe()                    # 生成管道
+#         pipes['stdout'], pipes['child_stdout'] = os.pipe()
+#         pipes['stderr'], pipes['child_stderr'] = os.pipe()
+#         for fd in (pipes['stdout'], pipes['stderr'], pipes['stdin']):
+#             fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | os.O_NDELAY)            # 设置文件描述符状态，使该管道成为非阻塞模式
+#         return pipes
+#     except OSError:
+#         raise
 
 def close_fd(fd):
     os.close(fd)
@@ -75,26 +72,23 @@ class SubSpwn(object):
         return os.dup2(frm, to)
 
     def spwn(self):
-        self.pipes = make_pipes()       # 通过管道重定向输入输出等
+        # self.pipes = make_pipes()       # 通过管道重定向输入输出等
 
         pid = os.fork()                 # 生成子进程
         if pid:                         # pid大于0，此时父进程执行
             self.pid = pid
             self.status = SUB_RUNNING
             print("SubSpwn pid", pid)
-            for fdname in ('child_stdin', 'child_stdout', 'child_stderr'):
-                close_fd(self.pipes[fdname])
+            # for fdname in ('child_stdin', 'child_stdout', 'child_stderr'):
+            #     close_fd(self.pipes[fdname])
             return 'done'                  # 返回子进程的Pid
 
-        fd = open("/dev/null", "a+")        # 保护输入输出异常
+        fd = open("process_%s.log" % self.name, "a+")        # 保护输入输出异常
         os.dup2(fd.fileno(), 0)     # 重定向标准输入
         os.dup2(fd.fileno(), 1)     # 重定向标准输出
         os.dup2(fd.fileno(), 2)     # 重定向标准错误输出
+        fd.close()
         try:
-            self.dup2(self.pipes['child_stdin'], 0)         # 重定向子进程的管道输入为标准输入
-            self.dup2(self.pipes['child_stdout'], 1)        # 重定向子进程的管道输入为标准输入
-            self.dup2(self.pipes['child_stderr'], 2)        # 重定向子进程的管道异常输入为异常输入
-            # 被监控的子进程进行实际任务的运行
             r = RunObj()
             r.run()
         finally:
@@ -109,18 +103,6 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
         print("sub spwn")
         for sub in self.sub:
             sub.spwn()                                          # 任务进程开始运行
-
-    def add_pipes(self, register):
-        for sub in self.sub:
-            print("sub pipe :", sub.pipes["stdout"])            # 获取管道的输出句柄
-            register.register(sub.pipes['stdout'], selectors.EVENT_WRITE)  # 在服务端注册管道监控的读事件
-
-    def read_pipes(self):
-        for sub in self.sub:                                    # 读管道的数据
-            try:
-                print("stdout :", os.read(sub.pipes["stdout"], 1024))  # 读管道的数据
-            except BlockingIOError:
-                pass
 
     def check_process(self):                                    # 检查子进程的运行状态
         pid = "pid"
@@ -139,7 +121,7 @@ class Control(ForkXMLRPCServer):                                # 运行的serve
             with open("control3.txt", "a") as f:
                 f.write("pid: {}, status: {}".format(pid, status) + "\n")
 
-        self.read_pipes()                                       # 读管道数据
+        # self.read_pipes()                                       # 读管道数据
 
     def start_all(self):                                        # rpc函数，开启所有任务
         res = []
